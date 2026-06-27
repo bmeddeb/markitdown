@@ -144,6 +144,8 @@ The browser UI:
 - lets you copy and download individual Markdown results
 - lets you download all successful conversions as a `.zip`
 
+Preview mode uses a bundled `markdown-it` renderer for full Markdown parsing, including headings, lists, links, images, tables, and code blocks. Relative image references from converted documents are shown as image placeholders unless the referenced image is available as a browser-loadable URL or data URI.
+
 Plugins are disabled by default, matching the CLI. Enable installed MarkItDown plugins from the UI before converting a batch when you need plugin-backed formats or behavior.
 
 By default, `markitdown-web` binds only to localhost. Do not bind it to a non-localhost interface unless you understand the security implications: the server has no authentication and processes uploads with the privileges of the user running it.

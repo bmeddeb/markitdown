@@ -16,6 +16,7 @@ const downloadButton = document.querySelector("#downloadButton");
 const downloadAllButton = document.querySelector("#downloadAllButton");
 const markdownModeButton = document.querySelector("#markdownModeButton");
 const previewModeButton = document.querySelector("#previewModeButton");
+const markdownParser = createMarkdownParser();
 
 const state = {
   files: [],
@@ -209,7 +210,7 @@ function renderPreview() {
 
   if (selectedResult?.status === "converted") {
     markdownPreview.textContent = selectedResult.markdown;
-    renderedPreview.innerHTML = renderMarkdown(selectedResult.markdown);
+    renderedPreview.innerHTML = renderMarkdownPreview(selectedResult.markdown);
     previewMeta.textContent = `${selectedResult.output_filename} · ${selectedResult.characters.toLocaleString()} chars`;
     statusPill.textContent = "Converted";
     renderOutputMode();
@@ -432,220 +433,78 @@ function escapeHtml(value) {
   }[char]));
 }
 
-function renderMarkdown(markdown) {
-  const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
-  const blocks = [];
-  let paragraph = [];
-  let list = null;
-  let blockquote = [];
-  let codeFence = null;
-  let tableRows = [];
-
-  function flushParagraph() {
-    if (paragraph.length === 0) {
-      return;
-    }
-    blocks.push(`<p>${renderInline(paragraph.join(" "))}</p>`);
-    paragraph = [];
-  }
-
-  function flushList() {
-    if (!list) {
-      return;
-    }
-    const items = list.items
-      .map((item) => `<li>${renderInline(item)}</li>`)
-      .join("");
-    blocks.push(`<${list.type}>${items}</${list.type}>`);
-    list = null;
-  }
-
-  function flushBlockquote() {
-    if (blockquote.length === 0) {
-      return;
-    }
-    blocks.push(`<blockquote>${renderMarkdown(blockquote.join("\n"))}</blockquote>`);
-    blockquote = [];
-  }
-
-  function flushTable() {
-    if (tableRows.length === 0) {
-      return;
-    }
-    const [header, , ...body] = tableRows;
-    const headCells = splitTableRow(header)
-      .map((cell) => `<th>${renderInline(cell.trim())}</th>`)
-      .join("");
-    const bodyRows = body
-      .map((row) => {
-        const cells = splitTableRow(row)
-          .map((cell) => `<td>${renderInline(cell.trim())}</td>`)
-          .join("");
-        return `<tr>${cells}</tr>`;
-      })
-      .join("");
-    blocks.push(
-      `<table><thead><tr>${headCells}</tr></thead><tbody>${bodyRows}</tbody></table>`,
-    );
-    tableRows = [];
-  }
-
-  function flushOpenBlocks() {
-    flushParagraph();
-    flushList();
-    flushBlockquote();
-    flushTable();
-  }
-
-  for (const line of lines) {
-    if (codeFence) {
-      if (/^```/.test(line.trim())) {
-        blocks.push(`<pre><code>${escapeHtml(codeFence.lines.join("\n"))}</code></pre>`);
-        codeFence = null;
-      } else {
-        codeFence.lines.push(line);
-      }
-      continue;
-    }
-
-    if (/^```/.test(line.trim())) {
-      flushOpenBlocks();
-      codeFence = { lines: [] };
-      continue;
-    }
-
-    if (line.trim() === "") {
-      flushOpenBlocks();
-      continue;
-    }
-
-    const heading = /^(#{1,6})\s+(.+)$/.exec(line);
-    if (heading) {
-      flushOpenBlocks();
-      const level = heading[1].length;
-      blocks.push(`<h${level}>${renderInline(heading[2].trim())}</h${level}>`);
-      continue;
-    }
-
-    if (/^\s*\|.+\|\s*$/.test(line) || tableRows.length > 0) {
-      if (
-        tableRows.length === 1
-        && /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line)
-      ) {
-        flushParagraph();
-        flushList();
-        flushBlockquote();
-        tableRows.push(line);
-        continue;
-      }
-      if (tableRows.length >= 2 && /^\s*\|.+\|\s*$/.test(line)) {
-        tableRows.push(line);
-        continue;
-      }
-      if (tableRows.length === 1) {
-        paragraph.push(tableRows.shift());
-      } else {
-        flushTable();
-      }
-    }
-
-    if (/^\s*\|.+\|\s*$/.test(line)) {
-      flushParagraph();
-      flushList();
-      flushBlockquote();
-      tableRows.push(line);
-      continue;
-    }
-
-    const quote = /^>\s?(.*)$/.exec(line);
-    if (quote) {
-      flushParagraph();
-      flushList();
-      flushTable();
-      blockquote.push(quote[1]);
-      continue;
-    }
-
-    const unordered = /^\s*[-*+]\s+(.+)$/.exec(line);
-    if (unordered) {
-      flushParagraph();
-      flushBlockquote();
-      flushTable();
-      if (!list || list.type !== "ul") {
-        flushList();
-        list = { type: "ul", items: [] };
-      }
-      list.items.push(unordered[1]);
-      continue;
-    }
-
-    const ordered = /^\s*\d+[.)]\s+(.+)$/.exec(line);
-    if (ordered) {
-      flushParagraph();
-      flushBlockquote();
-      flushTable();
-      if (!list || list.type !== "ol") {
-        flushList();
-        list = { type: "ol", items: [] };
-      }
-      list.items.push(ordered[1]);
-      continue;
-    }
-
-    flushList();
-    flushBlockquote();
-    flushTable();
-    paragraph.push(line.trim());
-  }
-
-  if (codeFence) {
-    blocks.push(`<pre><code>${escapeHtml(codeFence.lines.join("\n"))}</code></pre>`);
-  }
-  flushOpenBlocks();
-  return blocks.join("");
+function stripPrivateUseChars(value) {
+  return value.replace(/[\uE000-\uF8FF]/g, "");
 }
 
-function renderInline(value) {
-  const placeholders = [];
-  let html = escapeHtml(value);
+function createMarkdownParser() {
+  if (typeof window.markdownit !== "function") {
+    return null;
+  }
 
-  html = html.replace(/`([^`]+)`/g, (_match, code) => {
-    placeholders.push(`<code>${code}</code>`);
-    return `\u0000${placeholders.length - 1}\u0000`;
+  const parser = window.markdownit({
+    html: false,
+    linkify: true,
+    typographer: true,
+    breaks: false,
   });
 
-  html = html.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_match, label, href) => {
-    const safeHref = sanitizeHref(href);
-    if (!safeHref) {
-      return label;
+  const defaultLinkOpen = parser.renderer.rules.link_open || defaultRenderToken;
+  parser.renderer.rules.link_open = (tokens, index, options, env, self) => {
+    const hrefIndex = tokens[index].attrIndex("href");
+    if (hrefIndex >= 0) {
+      const href = tokens[index].attrs[hrefIndex][1];
+      if (!isSafeHref(href)) {
+        tokens[index].attrs.splice(hrefIndex, 1);
+      }
     }
-    return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${label}</a>`;
-  });
-  html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/__([^_]+)__/g, "<strong>$1</strong>");
-  html = html.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
-  html = html.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, "$1<em>$2</em>");
+    tokens[index].attrSet("target", "_blank");
+    tokens[index].attrSet("rel", "noopener noreferrer");
+    return defaultLinkOpen(tokens, index, options, env, self);
+  };
 
-  return html.replace(
-    /\u0000(\d+)\u0000/g,
-    (_match, index) => placeholders[Number(index)],
-  );
+  parser.renderer.rules.image = (tokens, index) => {
+    const token = tokens[index];
+    const src = token.attrGet("src") || "";
+    const alt = token.content || src;
+    if (isBrowserLoadableImage(src)) {
+      return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy">`;
+    }
+    return renderImageReference(src, alt);
+  };
+
+  return parser;
 }
 
-function sanitizeHref(href) {
-  const decoded = href.replace(/&amp;/g, "&").trim();
-  if (
-    /^(https?:|mailto:)/i.test(decoded)
-    || decoded.startsWith("#")
-    || decoded.startsWith("/")
-  ) {
-    return escapeHtml(decoded);
+function renderMarkdownPreview(markdown) {
+  const normalizedMarkdown = stripPrivateUseChars(markdown);
+  if (!markdownParser) {
+    return `<pre><code>${escapeHtml(normalizedMarkdown)}</code></pre>`;
   }
-  return "";
+  return markdownParser.render(normalizedMarkdown);
 }
 
-function splitTableRow(row) {
-  return row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|");
+function renderImageReference(src, alt) {
+  return [
+    '<span class="image-reference" role="note">',
+    '<span class="image-reference-icon" aria-hidden="true">',
+    '<svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"></path><path d="m4 15 4-4 4 4 2-2 6 6"></path><circle cx="15" cy="8" r="1"></circle></svg>',
+    "</span>",
+    `<span>Image reference: <code>${escapeHtml(src || alt)}</code></span>`,
+    "</span>",
+  ].join("");
+}
+
+function isSafeHref(href) {
+  return /^(https?:|mailto:|#|\/)/i.test(href || "");
+}
+
+function isBrowserLoadableImage(src) {
+  return /^(https?:|data:image\/|\/)/i.test(src || "");
+}
+
+function defaultRenderToken(tokens, index, options, env, self) {
+  return self.renderToken(tokens, index, options);
 }
 
 render();

@@ -548,6 +548,43 @@ button:not(:disabled):hover {
   color: inherit;
 }
 
+.rendered-preview img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.image-reference {
+  display: inline-flex;
+  max-width: 100%;
+  margin: 4px 0;
+  padding: 8px 10px;
+  align-items: center;
+  gap: 8px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.image-reference-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+
+.image-reference code {
+  max-width: min(520px, 60vw);
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
 .rendered-preview table {
   width: 100%;
   border-collapse: collapse;
