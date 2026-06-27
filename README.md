@@ -140,7 +140,8 @@ The browser UI:
 - supports mixed batches of any file types enabled in your installation
 - converts each file independently through the same MarkItDown converter library used by the CLI
 - shows per-file converted or failed status
-- lets you preview, copy, and download individual Markdown results
+- lets you switch between raw Markdown and rendered Preview views
+- lets you copy and download individual Markdown results
 - lets you download all successful conversions as a `.zip`
 
 Plugins are disabled by default, matching the CLI. Enable installed MarkItDown plugins from the UI before converting a batch when you need plugin-backed formats or behavior.

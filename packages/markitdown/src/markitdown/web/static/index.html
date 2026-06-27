@@ -65,15 +65,24 @@
           <div class="file-list" id="fileList" role="list"></div>
         </section>
 
-        <section class="preview-pane" aria-label="Markdown preview">
+        <section class="preview-pane" aria-label="Converted output">
           <div class="preview-header">
             <div>
               <h2>Markdown preview</h2>
               <p id="previewMeta">Ready</p>
             </div>
-            <span class="status-pill" id="statusPill">Ready</span>
+            <div class="preview-actions">
+              <div class="view-toggle" role="group" aria-label="Output view">
+                <button class="toggle-button is-active" id="markdownModeButton" type="button" aria-pressed="true">Markdown</button>
+                <button class="toggle-button" id="previewModeButton" type="button" aria-pressed="false">Preview</button>
+              </div>
+              <span class="status-pill" id="statusPill">Ready</span>
+            </div>
           </div>
-          <pre class="markdown-preview" id="markdownPreview" tabindex="0"></pre>
+          <div class="output-frame">
+            <pre class="markdown-preview" id="markdownPreview" tabindex="0"></pre>
+            <article class="rendered-preview is-hidden" id="renderedPreview" tabindex="0"></article>
+          </div>
         </section>
       </main>
     </div>
@@ -81,4 +90,3 @@
     <script src="/assets/app.js" defer></script>
   </body>
 </html>
-

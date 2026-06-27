@@ -385,6 +385,46 @@ button:not(:disabled):hover {
   border-bottom: 1px solid var(--border);
 }
 
+.preview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.view-toggle {
+  min-height: 34px;
+  padding: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.toggle-button {
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.toggle-button.is-active {
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(28, 41, 51, 0.12);
+}
+
+.toggle-button:not(.is-active):hover {
+  color: var(--text);
+}
+
 .status-pill {
   flex: 0 0 auto;
   padding: 5px 10px;
@@ -405,12 +445,22 @@ button:not(:disabled):hover {
   color: var(--danger);
 }
 
-.markdown-preview {
+.output-frame {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+}
+
+.markdown-preview,
+.rendered-preview {
   min-width: 0;
   min-height: 0;
   margin: 0;
   padding: 24px;
   overflow: auto;
+}
+
+.markdown-preview {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font: 13px/1.65 var(--mono);
@@ -423,6 +473,108 @@ button:not(:disabled):hover {
 
 .markdown-preview:empty::before {
   content: "";
+}
+
+.rendered-preview {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.rendered-preview h1,
+.rendered-preview h2,
+.rendered-preview h3,
+.rendered-preview h4,
+.rendered-preview h5,
+.rendered-preview h6 {
+  margin: 1.35em 0 0.55em;
+  color: var(--text);
+  line-height: 1.2;
+  font-weight: 750;
+}
+
+.rendered-preview h1 {
+  margin-top: 0;
+  font-size: 28px;
+}
+
+.rendered-preview h2 {
+  font-size: 22px;
+}
+
+.rendered-preview h3 {
+  font-size: 18px;
+}
+
+.rendered-preview p,
+.rendered-preview ul,
+.rendered-preview ol,
+.rendered-preview blockquote,
+.rendered-preview pre,
+.rendered-preview table {
+  margin: 0 0 16px;
+}
+
+.rendered-preview ul,
+.rendered-preview ol {
+  padding-left: 24px;
+}
+
+.rendered-preview blockquote {
+  padding: 8px 0 8px 14px;
+  border-left: 3px solid var(--border-strong);
+  color: var(--muted);
+}
+
+.rendered-preview code {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: var(--panel);
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+.rendered-preview pre {
+  padding: 14px;
+  overflow: auto;
+  border-radius: var(--radius);
+  background: #101820;
+  color: #edf6f8;
+}
+
+.rendered-preview pre code {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.rendered-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.rendered-preview th,
+.rendered-preview td {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rendered-preview th {
+  background: var(--panel);
+  font-weight: 750;
+}
+
+.rendered-preview a {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.is-hidden {
+  display: none;
 }
 
 @media (max-width: 860px) {
@@ -453,5 +605,14 @@ button:not(:disabled):hover {
   .file-list {
     max-height: 320px;
   }
-}
 
+  .preview-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .preview-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
