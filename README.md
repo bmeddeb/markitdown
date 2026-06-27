@@ -134,6 +134,14 @@ You can also run the app module directly:
 python -m markitdown.web --host 127.0.0.1 --port 8484 --open
 ```
 
+The browser UI rejects upload requests larger than 100 MiB by default. For larger files or batches, raise the limit:
+
+```bash
+markitdown-web --host 127.0.0.1 --port 8484 --max-upload-mb 512 --open
+```
+
+Use `--max-upload-mb 0` to disable the upload limit for local-only use. You can also set `MARKITDOWN_WEB_MAX_UPLOAD_BYTES`.
+
 The browser UI:
 
 - accepts one or more files through the file picker or drag-and-drop
@@ -147,6 +155,15 @@ The browser UI:
 Preview mode uses bundled `markdown-it` and `highlight.js` assets for full Markdown parsing, including headings, lists, links, images, tables, and syntax-highlighted code blocks with automatic language detection. Relative image references from converted documents are shown as image placeholders unless the referenced image is available as a browser-loadable URL or data URI.
 
 Plugins are disabled by default, matching the CLI. Enable installed MarkItDown plugins from the UI before converting a batch when you need plugin-backed formats or behavior.
+
+The browser UI supports the same built-in formats as the CLI. With `packages/markitdown[all]` installed, supported upload formats include:
+
+- Documents: `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.xls`, `.epub`, `.msg`
+- Text and data: `.txt`, `.text`, `.md`, `.markdown`, `.json`, `.jsonl`, `.csv`
+- Web exports: `.html`, `.htm`, RSS/Atom feeds, Wikipedia pages, Bing SERP HTML, and YouTube pages/transcripts
+- Images: `.jpg`, `.jpeg`, `.png`
+- Audio and video: `.wav`, `.mp3`, `.m4a`, `.mp4`
+- Archives: `.zip`, with supported files inside converted into one Markdown document
 
 By default, `markitdown-web` binds only to localhost. Do not bind it to a non-localhost interface unless you understand the security implications: the server has no authentication and processes uploads with the privileges of the user running it.
 

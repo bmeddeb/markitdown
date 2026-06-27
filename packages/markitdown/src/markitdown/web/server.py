@@ -222,6 +222,29 @@ def form_bool(form: MultipartForm, name: str, *, default: bool = False) -> bool:
     return values[-1].strip().lower() in ("1", "true", "yes", "on")
 
 
+def parse_max_upload_mb(value: str) -> int:
+    try:
+        megabytes = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number of MiB") from exc
+
+    if megabytes < 0:
+        raise argparse.ArgumentTypeError("must be greater than or equal to 0")
+
+    return int(megabytes * 1024 * 1024)
+
+
+def format_upload_size(num_bytes: int) -> str:
+    if num_bytes <= 0:
+        return "unlimited"
+
+    mib = num_bytes / (1024 * 1024)
+    if mib >= 1:
+        return f"{mib:g} MiB ({num_bytes} bytes)"
+
+    return f"{num_bytes} bytes"
+
+
 class MarkItDownWebHandler(BaseHTTPRequestHandler):
     server_version = "MarkItDownWeb/0.1"
 
@@ -263,11 +286,16 @@ class MarkItDownWebHandler(BaseHTTPRequestHandler):
             self.send_error(HTTPStatus.BAD_REQUEST, "Invalid Content-Length.")
             return
 
-        if content_length > MAX_UPLOAD_BYTES:
+        max_upload_bytes = getattr(self.server, "max_upload_bytes", MAX_UPLOAD_BYTES)
+        if max_upload_bytes > 0 and content_length > max_upload_bytes:
             self._send_json(
                 {
                     "error": "PayloadTooLarge",
-                    "message": f"Upload is larger than {MAX_UPLOAD_BYTES} bytes.",
+                    "message": (
+                        "Upload is larger than "
+                        f"{format_upload_size(max_upload_bytes)}. "
+                        "Restart with --max-upload-mb to raise the limit."
+                    ),
                 },
                 status=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
             )
@@ -328,12 +356,20 @@ class MarkItDownWebHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def run_server(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, *, open_browser: bool = False) -> None:
+def run_server(
+    host: str = DEFAULT_HOST,
+    port: int = DEFAULT_PORT,
+    *,
+    open_browser: bool = False,
+    max_upload_bytes: int = MAX_UPLOAD_BYTES,
+) -> None:
     httpd = ThreadingHTTPServer((host, port), MarkItDownWebHandler)
+    httpd.max_upload_bytes = max_upload_bytes
     actual_host, actual_port = httpd.server_address[:2]
     url = f"http://{actual_host}:{actual_port}/"
 
     print(f"MarkItDown Web is running at {url}")
+    print(f"Maximum upload size: {format_upload_size(max_upload_bytes)}")
     print("Press Ctrl+C to stop.")
 
     if open_browser:
@@ -359,6 +395,17 @@ def main() -> None:
         help=f"Port to listen on (default: {DEFAULT_PORT})",
     )
     parser.add_argument("--open", action="store_true", help="Open the UI in the default browser.")
+    parser.add_argument(
+        "--max-upload-mb",
+        type=parse_max_upload_mb,
+        default=MAX_UPLOAD_BYTES,
+        metavar="MIB",
+        help=(
+            "Maximum upload request size in MiB. Use 0 for no limit. "
+            f"Default: {format_upload_size(MAX_UPLOAD_BYTES)}. "
+            "Can also be set with MARKITDOWN_WEB_MAX_UPLOAD_BYTES."
+        ),
+    )
     args = parser.parse_args()
 
     if args.host not in ("127.0.0.1", "localhost", "::1"):
@@ -370,4 +417,9 @@ def main() -> None:
             file=sys.stderr,
         )
 
-    run_server(args.host, args.port, open_browser=args.open)
+    run_server(
+        args.host,
+        args.port,
+        open_browser=args.open,
+        max_upload_bytes=args.max_upload_mb,
+    )

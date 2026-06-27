@@ -3,8 +3,10 @@
 from markitdown.web.server import (
     UploadedFile,
     convert_uploads,
+    format_upload_size,
     markdown_filename,
     parse_multipart_form,
+    parse_max_upload_mb,
     sanitize_filename,
 )
 
@@ -18,6 +20,17 @@ def test_sanitize_filename_strips_paths_and_controls() -> None:
 def test_markdown_filename_replaces_extension() -> None:
     assert markdown_filename("report.pdf") == "report.md"
     assert markdown_filename("archive") == "archive.md"
+
+
+def test_parse_max_upload_mb_returns_bytes() -> None:
+    assert parse_max_upload_mb("100") == 100 * 1024 * 1024
+    assert parse_max_upload_mb("0") == 0
+    assert parse_max_upload_mb("1.5") == int(1.5 * 1024 * 1024)
+
+
+def test_format_upload_size_is_human_readable() -> None:
+    assert format_upload_size(100 * 1024 * 1024) == "100 MiB (104857600 bytes)"
+    assert format_upload_size(0) == "unlimited"
 
 
 def test_parse_multipart_form_collects_fields_and_files() -> None:
