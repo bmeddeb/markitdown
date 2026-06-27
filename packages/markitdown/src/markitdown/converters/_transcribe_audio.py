@@ -13,11 +13,33 @@ try:
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         warnings.filterwarnings("ignore", category=SyntaxWarning)
+        warnings.filterwarnings("ignore", category=RuntimeWarning, module="pydub")
         import speech_recognition as sr
         import pydub
 except ImportError:
     # Preserve the error and stack trace for later
     _dependency_exc_info = sys.exc_info()
+
+try:
+    import imageio_ffmpeg
+except ImportError:
+    imageio_ffmpeg = None
+
+
+def _configure_pydub_ffmpeg() -> None:
+    if _dependency_exc_info is not None or imageio_ffmpeg is None:
+        return
+
+    try:
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return
+
+    pydub.AudioSegment.converter = ffmpeg_exe
+    pydub.AudioSegment.ffmpeg = ffmpeg_exe
+
+
+_configure_pydub_ffmpeg()
 
 
 def transcribe_audio(file_stream: BinaryIO, *, audio_format: str = "wav") -> str:

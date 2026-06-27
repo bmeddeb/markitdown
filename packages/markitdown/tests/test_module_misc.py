@@ -445,6 +445,23 @@ def test_pptx_outputs_clean_markdown_structure() -> None:
     assert "\n\n- Comment 1\n- Comment 2:\n  - Sub comment 2" in markdown
 
 
+def test_audio_transcription_configures_pydub_with_imageio_ffmpeg(monkeypatch) -> None:
+    import markitdown.converters._transcribe_audio as transcribe_audio_module
+
+    fake_imageio_ffmpeg = MagicMock()
+    fake_imageio_ffmpeg.get_ffmpeg_exe.return_value = "/tmp/ffmpeg"
+    fake_pydub = MagicMock()
+
+    monkeypatch.setattr(transcribe_audio_module, "_dependency_exc_info", None)
+    monkeypatch.setattr(transcribe_audio_module, "imageio_ffmpeg", fake_imageio_ffmpeg)
+    monkeypatch.setattr(transcribe_audio_module, "pydub", fake_pydub)
+
+    transcribe_audio_module._configure_pydub_ffmpeg()
+
+    assert fake_pydub.AudioSegment.converter == "/tmp/ffmpeg"
+    assert fake_pydub.AudioSegment.ffmpeg == "/tmp/ffmpeg"
+
+
 @pytest.mark.skipif(
     skip_exiftool,
     reason="do not run if exiftool is not installed",

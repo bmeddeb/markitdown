@@ -170,7 +170,7 @@ At the moment, the following optional dependencies are available:
 * `[outlook]` Installs dependencies for Outlook messages
 * `[az-doc-intel]` Installs dependencies for Azure Document Intelligence
 * `[az-content-understanding]` Installs dependencies for Azure Content Understanding
-* `[audio-transcription]` Installs dependencies for audio transcription of wav and mp3 files
+* `[audio-transcription]` Installs dependencies for audio transcription of wav and mp3 files, including a bundled ffmpeg binary
 * `[youtube-transcription]` Installs dependencies for fetching YouTube video transcription
 
 ### Plugins
