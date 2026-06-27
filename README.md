@@ -90,16 +90,48 @@ cat path-to-file.pdf | markitdown
 
 ### Browser UI
 
-For a local browser interface with a file picker and batch conversion queue, run:
+To install dependencies from source and run the local browser app:
 
 ```bash
+git clone git@github.com:microsoft/markitdown.git
+cd markitdown
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -e 'packages/markitdown[all]'
 markitdown-web --host 127.0.0.1 --port 8484 --open
 ```
 
-Then open `http://127.0.0.1:8484/` in your browser. From source, make sure the package is installed first:
+If you are already in this repository with an active virtual environment, run:
 
 ```bash
 pip install -e 'packages/markitdown[all]'
+markitdown-web --host 127.0.0.1 --port 8484 --open
+```
+
+Then open `http://127.0.0.1:8484/` in your browser if it does not open automatically.
+
+With `uv`, the equivalent setup is:
+
+```bash
+uv venv --python=3.12 .venv
+source .venv/bin/activate
+uv pip install -e 'packages/markitdown[all]'
+markitdown-web --host 127.0.0.1 --port 8484 --open
+```
+
+If `markitdown-web` is not found, reinstall the local package in the active environment and refresh zsh's command cache:
+
+```bash
+uv pip install -e 'packages/markitdown[all]'
+rehash
+markitdown-web --host 127.0.0.1 --port 8484 --open
+```
+
+You can also run the app module directly:
+
+```bash
+python -m markitdown.web --host 127.0.0.1 --port 8484 --open
 ```
 
 The browser UI:
