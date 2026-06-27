@@ -85,12 +85,36 @@ class PptxConverter(DocumentConverter):
         for slide in presentation.slides:
             slide_num += 1
 
-            md_content += f"\n\n<!-- Slide number: {slide_num} -->\n"
+            def append_block(block):
+                nonlocal md_content
+                block = block.strip()
+                if not block:
+                    return
+                if md_content:
+                    md_content = md_content.rstrip() + "\n\n"
+                md_content += block + "\n\n"
 
-            title = slide.shapes.title
+            sorted_shapes = sorted(
+                slide.shapes,
+                key=lambda x: (
+                    float("-inf") if not x.top else x.top,
+                    float("-inf") if not x.left else x.left,
+                ),
+            )
+            title = self._find_title_shape(slide, sorted_shapes)
+            title_text = (
+                self._clean_heading_text(title.text) if title is not None else ""
+            )
+            if title_text:
+                append_block(f"## Slide {slide_num}: {title_text}")
+            else:
+                append_block(f"## Slide {slide_num}")
 
             def get_shape_content(shape, **kwargs):
                 nonlocal md_content
+                if shape == title:
+                    return
+
                 # Pictures
                 if self._is_picture(shape):
                     # https://github.com/scanny/python-pptx/pull/512#issuecomment-1713100069
@@ -145,26 +169,25 @@ class PptxConverter(DocumentConverter):
                         blob = shape.image.blob
                         content_type = shape.image.content_type or "image/png"
                         b64_string = base64.b64encode(blob).decode("utf-8")
-                        md_content += f"\n![{alt_text}](data:{content_type};base64,{b64_string})\n"
+                        append_block(
+                            f"![{alt_text}](data:{content_type};base64,{b64_string})"
+                        )
                     else:
                         # A placeholder name
                         filename = re.sub(r"\W", "", shape.name) + ".jpg"
-                        md_content += "\n![" + alt_text + "](" + filename + ")\n"
+                        append_block("![" + alt_text + "](" + filename + ")")
 
                 # Tables
                 if self._is_table(shape):
-                    md_content += self._convert_table_to_markdown(shape.table, **kwargs)
+                    append_block(self._convert_table_to_markdown(shape.table, **kwargs))
 
                 # Charts
                 if shape.has_chart:
-                    md_content += self._convert_chart_to_markdown(shape.chart)
+                    append_block(self._convert_chart_to_markdown(shape.chart))
 
                 # Text areas
                 elif shape.has_text_frame:
-                    if shape == title:
-                        md_content += "# " + shape.text.lstrip() + "\n"
-                    else:
-                        md_content += shape.text + "\n"
+                    append_block(self._convert_text_frame_to_markdown(shape.text_frame))
 
                 # Group Shapes
                 if shape.shape_type == pptx.enum.shapes.MSO_SHAPE_TYPE.GROUP:
@@ -178,26 +201,139 @@ class PptxConverter(DocumentConverter):
                     for subshape in sorted_shapes:
                         get_shape_content(subshape, **kwargs)
 
-            sorted_shapes = sorted(
-                slide.shapes,
-                key=lambda x: (
-                    float("-inf") if not x.top else x.top,
-                    float("-inf") if not x.left else x.left,
-                ),
-            )
             for shape in sorted_shapes:
                 get_shape_content(shape, **kwargs)
 
             md_content = md_content.strip()
 
             if slide.has_notes_slide:
-                md_content += "\n\n### Notes:\n"
                 notes_frame = slide.notes_slide.notes_text_frame
                 if notes_frame is not None:
-                    md_content += notes_frame.text
+                    notes_markdown = self._convert_text_frame_to_markdown(notes_frame)
+                    if notes_markdown:
+                        md_content = md_content.rstrip() + "\n\n"
+                        md_content += f"### Notes\n\n{notes_markdown}"
                 md_content = md_content.strip()
 
         return DocumentConverterResult(markdown=md_content.strip())
+
+    def _find_title_shape(self, slide, sorted_shapes):
+        title = slide.shapes.title
+        if title is not None and self._clean_text(title.text):
+            return title
+
+        for shape in sorted_shapes:
+            if self._is_title_placeholder(shape) and self._clean_text(shape.text):
+                return shape
+
+        for shape in sorted_shapes:
+            if self._looks_like_title_shape(shape):
+                return shape
+
+        return None
+
+    def _is_title_placeholder(self, shape):
+        if not getattr(shape, "is_placeholder", False):
+            return False
+
+        try:
+            placeholder_type = shape.placeholder_format.type
+        except Exception:
+            return False
+
+        return placeholder_type in (
+            pptx.enum.shapes.PP_PLACEHOLDER.CENTER_TITLE,
+            pptx.enum.shapes.PP_PLACEHOLDER.TITLE,
+            pptx.enum.shapes.PP_PLACEHOLDER.VERTICAL_TITLE,
+        )
+
+    def _looks_like_title_shape(self, shape):
+        if not getattr(shape, "has_text_frame", False):
+            return False
+
+        text = self._clean_text(shape.text)
+        if not text or len(text) > 160:
+            return False
+
+        non_empty_paragraphs = [
+            paragraph
+            for paragraph in shape.text_frame.paragraphs
+            if self._clean_text(paragraph.text)
+        ]
+        if len(non_empty_paragraphs) != 1:
+            return False
+
+        if self._is_non_content_placeholder(shape):
+            return False
+
+        return True
+
+    def _is_non_content_placeholder(self, shape):
+        if not getattr(shape, "is_placeholder", False):
+            return False
+
+        try:
+            placeholder_type = shape.placeholder_format.type
+        except Exception:
+            return False
+
+        return placeholder_type in (
+            pptx.enum.shapes.PP_PLACEHOLDER.DATE,
+            pptx.enum.shapes.PP_PLACEHOLDER.FOOTER,
+            pptx.enum.shapes.PP_PLACEHOLDER.HEADER,
+            pptx.enum.shapes.PP_PLACEHOLDER.SLIDE_NUMBER,
+        )
+
+    def _convert_text_frame_to_markdown(self, text_frame):
+        blocks = []
+        current_list = []
+
+        def flush_list():
+            if current_list:
+                blocks.append("\n".join(current_list))
+                current_list.clear()
+
+        for paragraph in text_frame.paragraphs:
+            text = self._clean_text(paragraph.text)
+            if not text:
+                flush_list()
+                continue
+
+            if self._is_bullet_paragraph(paragraph):
+                indent = "  " * max(paragraph.level, 0)
+                current_list.append(f"{indent}- {text}")
+            else:
+                flush_list()
+                blocks.append(text)
+
+        flush_list()
+        return "\n\n".join(blocks)
+
+    def _is_bullet_paragraph(self, paragraph):
+        if paragraph.level > 0:
+            return True
+
+        p_pr = getattr(paragraph._p, "pPr", None)
+        if p_pr is None:
+            return False
+
+        has_bullet = False
+        for child in p_pr:
+            tag_name = child.tag.rsplit("}", 1)[-1]
+            if tag_name == "buNone":
+                return False
+            if tag_name in ("buAutoNum", "buBlip", "buChar"):
+                has_bullet = True
+
+        return has_bullet
+
+    def _clean_text(self, text):
+        text = (text or "").replace("\xa0", " ")
+        lines = [re.sub(r"[ \t]+", " ", line).strip() for line in text.splitlines()]
+        return "\n".join(line for line in lines if line).strip()
+
+    def _clean_heading_text(self, text):
+        return re.sub(r"\s+", " ", self._clean_text(text)).strip()
 
     def _is_picture(self, shape):
         if shape.shape_type == pptx.enum.shapes.MSO_SHAPE_TYPE.PICTURE:

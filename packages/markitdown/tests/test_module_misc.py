@@ -432,6 +432,19 @@ def test_exceptions() -> None:
     assert type(exc_info.value.attempts[0].converter).__name__ == "PptxConverter"
 
 
+def test_pptx_outputs_clean_markdown_structure() -> None:
+    markitdown = MarkItDown()
+    result = markitdown.convert(os.path.join(TEST_FILES_DIR, "test.pptx"))
+    markdown = result.markdown
+
+    assert "<!-- Slide number:" not in markdown
+    assert markdown.startswith(
+        "## Slide 1: AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation"
+    )
+    assert "\n\n## Slide 2: 2cdda5c8-e50e-4db4-b5f0-9722a649f455" in markdown
+    assert "\n\n- Comment 1\n- Comment 2:\n  - Sub comment 2" in markdown
+
+
 @pytest.mark.skipif(
     skip_exiftool,
     reason="do not run if exiftool is not installed",
