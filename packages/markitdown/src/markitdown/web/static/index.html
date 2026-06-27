@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MarkItDown Web</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <div>
+            <h1>MarkItDown Web</h1>
+            <p id="runSummary">Ready</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-button" id="copyButton" type="button" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="10" height="12" rx="2"></rect><path d="M6 16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Copy</span>
+          </button>
+          <button class="icon-button" id="downloadButton" type="button" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+            <span>Download</span>
+          </button>
+          <button class="primary-button" id="downloadAllButton" type="button" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"></path><path d="M7 8V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3"></path><path d="M12 11v6"></path><path d="m9 14 3 3 3-3"></path></svg>
+            <span>Download all</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="left-pane" aria-label="Files">
+          <form id="uploadForm" class="upload-form">
+            <input id="fileInput" type="file" multiple />
+            <button class="dropzone" id="chooseFilesButton" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h5l2 3h5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"></path><path d="M12 11v6"></path><path d="m9 14 3-3 3 3"></path></svg>
+              <span>Choose files</span>
+            </button>
+
+            <div class="options">
+              <label>
+                <input id="keepDataUris" type="checkbox" />
+                <span>Keep data URIs</span>
+              </label>
+              <label>
+                <input id="enablePlugins" type="checkbox" />
+                <span>Enable plugins</span>
+              </label>
+            </div>
+
+            <button class="convert-button" id="convertButton" type="submit" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+              <span>Convert</span>
+            </button>
+          </form>
+
+          <div class="queue-header">
+            <h2>Selected files</h2>
+            <button class="text-button" id="clearButton" type="button" disabled>Clear</button>
+          </div>
+          <div class="file-list" id="fileList" role="list"></div>
+        </section>
+
+        <section class="preview-pane" aria-label="Markdown preview">
+          <div class="preview-header">
+            <div>
+              <h2>Markdown preview</h2>
+              <p id="previewMeta">Ready</p>
+            </div>
+            <span class="status-pill" id="statusPill">Ready</span>
+          </div>
+          <pre class="markdown-preview" id="markdownPreview" tabindex="0"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
+

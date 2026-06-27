@@ -88,6 +88,33 @@ You can also pipe content:
 cat path-to-file.pdf | markitdown
 ```
 
+### Browser UI
+
+For a local browser interface with a file picker and batch conversion queue, run:
+
+```bash
+markitdown-web --host 127.0.0.1 --port 8484 --open
+```
+
+Then open `http://127.0.0.1:8484/` in your browser. From source, make sure the package is installed first:
+
+```bash
+pip install -e 'packages/markitdown[all]'
+```
+
+The browser UI:
+
+- accepts one or more files through the file picker or drag-and-drop
+- supports mixed batches of any file types enabled in your installation
+- converts each file independently through the same MarkItDown converter library used by the CLI
+- shows per-file converted or failed status
+- lets you preview, copy, and download individual Markdown results
+- lets you download all successful conversions as a `.zip`
+
+Plugins are disabled by default, matching the CLI. Enable installed MarkItDown plugins from the UI before converting a batch when you need plugin-backed formats or behavior.
+
+By default, `markitdown-web` binds only to localhost. Do not bind it to a non-localhost interface unless you understand the security implications: the server has no authentication and processes uploads with the privileges of the user running it.
+
 ### Optional Dependencies
 MarkItDown has optional dependencies for activating various file formats. Earlier in this document, we installed all optional dependencies with the `[all]` option. However, you can also install them individually for more control. For example:
 
