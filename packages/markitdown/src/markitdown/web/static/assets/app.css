@@ -526,7 +526,7 @@ button:not(:disabled):hover {
   color: var(--muted);
 }
 
-.rendered-preview code {
+.rendered-preview :not(pre) > code {
   padding: 2px 5px;
   border-radius: 5px;
   background: var(--panel);
@@ -535,17 +535,28 @@ button:not(:disabled):hover {
 }
 
 .rendered-preview pre {
-  padding: 14px;
-  overflow: auto;
+  padding: 0;
+  overflow: hidden;
   border-radius: var(--radius);
-  background: #101820;
-  color: #edf6f8;
+  background: #0d1117;
+  color: #c9d1d9;
 }
 
 .rendered-preview pre code {
-  padding: 0;
-  background: transparent;
-  color: inherit;
+  display: block;
+  min-width: 100%;
+  padding: 14px 16px;
+  overflow-x: auto;
+  background: #0d1117;
+  color: #c9d1d9;
+  font: 13px/1.6 var(--mono);
+  overflow-wrap: normal;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.rendered-preview pre code.hljs {
+  padding: 14px 16px;
 }
 
 .rendered-preview img {

@@ -16,6 +16,7 @@ const downloadButton = document.querySelector("#downloadButton");
 const downloadAllButton = document.querySelector("#downloadAllButton");
 const markdownModeButton = document.querySelector("#markdownModeButton");
 const previewModeButton = document.querySelector("#previewModeButton");
+const syntaxHighlighter = createSyntaxHighlighter();
 const markdownParser = createMarkdownParser();
 
 const state = {
@@ -437,6 +438,17 @@ function stripPrivateUseChars(value) {
   return value.replace(/[\uE000-\uF8FF]/g, "");
 }
 
+function createSyntaxHighlighter() {
+  const highlighter = window.hljs;
+  if (!highlighter || typeof highlighter.highlightAuto !== "function") {
+    return null;
+  }
+  if (typeof highlighter.configure === "function") {
+    highlighter.configure({ ignoreUnescapedHTML: true });
+  }
+  return highlighter;
+}
+
 function createMarkdownParser() {
   if (typeof window.markdownit !== "function") {
     return null;
@@ -447,6 +459,7 @@ function createMarkdownParser() {
     linkify: true,
     typographer: true,
     breaks: false,
+    highlight: highlightCode,
   });
 
   const defaultLinkOpen = parser.renderer.rules.link_open || defaultRenderToken;
@@ -473,6 +486,18 @@ function createMarkdownParser() {
     return renderImageReference(src, alt);
   };
 
+  parser.renderer.rules.fence = (tokens, index, options) => {
+    const token = tokens[index];
+    const languageName = getFenceLanguage(token.info);
+    const languageClass = languageName ? ` language-${sanitizeLanguageClass(languageName)}` : "";
+    const highlightedCode = options.highlight(token.content, languageName);
+    return `<pre><code class="hljs${languageClass}">${highlightedCode}</code></pre>\n`;
+  };
+
+  parser.renderer.rules.code_block = (tokens, index, options) => (
+    `<pre><code class="hljs">${options.highlight(tokens[index].content, "")}</code></pre>\n`
+  );
+
   return parser;
 }
 
@@ -482,6 +507,58 @@ function renderMarkdownPreview(markdown) {
     return `<pre><code>${escapeHtml(normalizedMarkdown)}</code></pre>`;
   }
   return markdownParser.render(normalizedMarkdown);
+}
+
+function highlightCode(code, language) {
+  if (!syntaxHighlighter) {
+    return escapeHtml(code);
+  }
+
+  const normalizedLanguage = normalizeLanguageName(language);
+  try {
+    if (
+      normalizedLanguage
+      && typeof syntaxHighlighter.getLanguage === "function"
+      && syntaxHighlighter.getLanguage(normalizedLanguage)
+    ) {
+      return syntaxHighlighter.highlight(code, {
+        language: normalizedLanguage,
+        ignoreIllegals: true,
+      }).value;
+    }
+    return syntaxHighlighter.highlightAuto(code).value;
+  } catch (error) {
+    return escapeHtml(code);
+  }
+}
+
+function getFenceLanguage(info) {
+  return normalizeLanguageName((info || "").trim().split(/\s+/)[0]);
+}
+
+function normalizeLanguageName(language) {
+  const normalizedLanguage = (language || "").replace(/^language-/i, "").toLowerCase();
+  const aliases = {
+    "c++": "cpp",
+    cpp: "cpp",
+    csharp: "csharp",
+    "c#": "csharp",
+    cs: "csharp",
+    js: "javascript",
+    md: "markdown",
+    objc: "objectivec",
+    py: "python",
+    rb: "ruby",
+    sh: "bash",
+    shell: "bash",
+    ts: "typescript",
+    yml: "yaml",
+  };
+  return aliases[normalizedLanguage] || normalizedLanguage;
+}
+
+function sanitizeLanguageClass(language) {
+  return language.replace(/[^\w-]/g, "");
 }
 
 function renderImageReference(src, alt) {

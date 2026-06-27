@@ -235,6 +235,8 @@ class MarkItDownWebHandler(BaseHTTPRequestHandler):
             "/": "index.html",
             "/assets/app.css": "assets/app.css",
             "/assets/app.js": "assets/app.js",
+            "/assets/highlight-github-dark.min.css": "assets/highlight-github-dark.min.css",
+            "/assets/highlight.min.js": "assets/highlight.min.js",
             "/assets/markdown-it.min.js": "assets/markdown-it.min.js",
         }.get(path)
 
